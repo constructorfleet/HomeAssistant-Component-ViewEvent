@@ -1,0 +1,11 @@
+{
+  "domain": "view_event",
+  "name": "View Event",
+  "documentation": "https://github.com/constructorfleet/HomeAssistant-Component-ViewEvent",
+  "requirements": [
+    "voluptuous==0.11.5"
+  ],
+  "codeowners": [
+    "@teagan42"
+  ]
+}
