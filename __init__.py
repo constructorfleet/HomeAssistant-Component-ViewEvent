@@ -16,18 +16,19 @@ import homeassistant.helpers.config_validation as cv
 _LOGGER = logging.getLogger(__name__)
 
 ATTR_METHOD = 'method'
-ATTR_URL = 'url'
+ATTR_AUTH_REQUIRED = 'auth_required'
 
 CONF_EVENT_TYPE = 'event_type'
 CONF_ROUTE_ATTR = 'route_attribute'
 
+DEFAULT_EVENT_TYPE = 'route_registered'
 DEFAULT_ROUTE_ATTR = 'route'
 
 DOMAIN = 'view_event'
 
 CONFIG_SCHEMA = vol.Schema({
     DOMAIN: vol.Schema({
-        vol.Required(CONF_EVENT_TYPE): cv.slug,
+        vol.Optional(CONF_EVENT_TYPE, default=DEFAULT_EVENT_TYPE): cv.slug,
         vol.Optional(CONF_ROUTE_ATTR, default=DEFAULT_ROUTE_ATTR): cv.slug
     }),
 }, extra=vol.ALLOW_EXTRA)
@@ -56,17 +57,18 @@ def _wrap_function(function, pre, post):
     return _w
 
 
-def _get_fire_event(hass, event_type, endpoint_attr):
+def _get_fire_event(hass, event_type, route_attr):
     """Get the function that fires the event."""
     def _fire_event(view, *args, **kwargs):
         for route in _get_routes(view):
             hass.bus.async_fire(
                 event_type=event_type,
                 event_data={
-                    endpoint_attr: route[ATTR_URL],
-                    ATTR_METHOD: route[ATTR_METHOD]
+                    route_attr: route[route_attr],
+                    ATTR_METHOD: route[ATTR_METHOD],
+                    ATTR_AUTH_REQUIRED: view.requires_auth
                 },
-                origin=EventOrigin.remote
+                origin=EventOrigin.local
             )
 
     return _fire_event
@@ -81,6 +83,7 @@ def _process_existing_views(fire_event):
 def _get_routes(view):
     if not view.cors_allowed:
         return []
+
     urls = [view.url] + view.extra_urls
     routes = []
 
