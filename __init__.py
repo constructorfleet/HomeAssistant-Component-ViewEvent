@@ -7,35 +7,23 @@ https://home-assistant.io/components/remote_homeassistant/
 import gc
 import logging
 
-import voluptuous as vol
-
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.core import EventOrigin
-import homeassistant.helpers.config_validation as cv
 
 _LOGGER = logging.getLogger(__name__)
 
 ATTR_METHOD = 'method'
 ATTR_AUTH_REQUIRED = 'auth_required'
 
-CONF_EVENT_TYPE = 'event_type'
-CONF_ROUTE_ATTR = 'route_attribute'
-
 DEFAULT_EVENT_TYPE = 'route_registered'
 DEFAULT_ROUTE_ATTR = 'route'
 
 DOMAIN = 'view_event'
 
-CONFIG_SCHEMA = vol.Schema({
-    DOMAIN: vol.Schema({
-        vol.Optional(CONF_EVENT_TYPE, default=DEFAULT_EVENT_TYPE): cv.slug,
-        vol.Optional(CONF_ROUTE_ATTR, default=DEFAULT_ROUTE_ATTR): cv.slug
-    }),
-}, extra=vol.ALLOW_EXTRA)
-
 
 def _wrap_function(function, pre, post):
     """Wrap a function with pre and post hooks."""
+
     def _w(self, *args, **kwargs):
         """Execute wrapped function."""
         try:
@@ -59,6 +47,7 @@ def _wrap_function(function, pre, post):
 
 def _get_fire_event(hass, event_type, route_attr):
     """Get the function that fires the event."""
+
     def _fire_event(view, *args, **kwargs):
         for route in _get_routes(view):
             hass.bus.async_fire(
