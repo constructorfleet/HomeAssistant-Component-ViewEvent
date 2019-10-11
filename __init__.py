@@ -15,8 +15,8 @@ _LOGGER = logging.getLogger(__name__)
 ATTR_METHOD = 'method'
 ATTR_AUTH_REQUIRED = 'auth_required'
 
-DEFAULT_EVENT_TYPE = 'route_registered'
-DEFAULT_ROUTE_ATTR = 'route'
+EVENT_TYPE = 'route_registered'
+ATTR_ROUTE = 'route'
 
 DOMAIN = 'view_event'
 
@@ -45,15 +45,15 @@ def _wrap_function(function, pre, post):
     return _w
 
 
-def _get_fire_event(hass, event_type, route_attr):
+def _get_fire_event(hass):
     """Get the function that fires the event."""
 
     def _fire_event(view, *args, **kwargs):
         for route in _get_routes(view):
             hass.bus.async_fire(
-                event_type=event_type,
+                event_type=EVENT_TYPE,
                 event_data={
-                    route_attr: route[route_attr],
+                    ATTR_ROUTE: route[ATTR_ROUTE],
                     ATTR_METHOD: route[ATTR_METHOD],
                     ATTR_AUTH_REQUIRED: view.requires_auth
                 },
@@ -84,7 +84,7 @@ def _get_routes(view):
 
         for url in urls:
             routes.append({
-                ATTR_URL: url,
+                ATTR_ROUTE: url,
                 ATTR_METHOD: method
             })
 
@@ -93,9 +93,7 @@ def _get_routes(view):
 
 async def async_setup(hass, config):
     """Set up the view_event component."""
-    conf = config.get(DOMAIN)
-
-    fire_event = _get_fire_event(hass, conf[CONF_EVENT_TYPE], conf[CONF_ROUTE_ATTR])
+    fire_event = _get_fire_event(hass)
 
     HomeAssistantView.register = _wrap_function(
         HomeAssistantView.register,
