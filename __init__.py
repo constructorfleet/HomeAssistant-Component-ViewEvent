@@ -15,10 +15,13 @@ _LOGGER = logging.getLogger(__name__)
 ATTR_METHOD = 'method'
 ATTR_AUTH_REQUIRED = 'auth_required'
 
-EVENT_TYPE = 'route_registered'
+EVENT_TYPE_REQUEST_ROUTES = 'request_routes'
+EVENT_TYPE_ROUTE_REGISTERED = 'route_registered'
 ATTR_ROUTE = 'route'
 
 DOMAIN = 'view_event'
+
+REGISTERED_ROUTES = []
 
 
 def _wrap_function(function, pre, post):
@@ -55,15 +58,17 @@ def _get_fire_event(hass):
 
     def _fire_event(view, *args, **kwargs):
         _LOGGER.warning("Trying to fire event")
-        for route in _get_routes(view):
+        for route in REGISTERED_ROUTES:
             _LOGGER.warning("Firing event for %s %s" % (route[ATTR_ROUTE], route[ATTR_METHOD]))
+            route_event = {
+                ATTR_ROUTE: route[ATTR_ROUTE],
+                ATTR_METHOD: route[ATTR_METHOD],
+                ATTR_AUTH_REQUIRED: view.requires_auth
+            }
+            REGISTERED_ROUTES.append(route_event)
             hass.bus.async_fire(
-                event_type=EVENT_TYPE,
-                event_data={
-                    ATTR_ROUTE: route[ATTR_ROUTE],
-                    ATTR_METHOD: route[ATTR_METHOD],
-                    ATTR_AUTH_REQUIRED: view.requires_auth
-                },
+                event_type=EVENT_TYPE_ROUTE_REGISTERED,
+                event_data=route_event,
                 origin=EventOrigin.local
             )
 
@@ -101,6 +106,23 @@ def _get_routes(view):
     return routes
 
 
+def _route_requested_handler(hass):
+
+    def send_registered_routes():
+        for route in REGISTERED_ROUTES:
+            _LOGGER.warning("Firing event for %s %s" % (route[ATTR_ROUTE], route[ATTR_METHOD]))
+            hass.bus.async_fire(
+                event_type=EVENT_TYPE_ROUTE_REGISTERED,
+                event_data=route,
+                origin=EventOrigin.local
+            )
+        hass.bus.async_fire(
+
+        )
+
+    return send_registered_routes
+
+
 async def async_setup(hass, config):
     """Set up the view_event component."""
     _LOGGER.warning("SETTING UP")
@@ -113,5 +135,7 @@ async def async_setup(hass, config):
     )
 
     _process_existing_views(fire_event)
+
+    hass.bus.listen(EVENT_TYPE_REQUEST_ROUTES, _route_requested_handler(hass))
 
     return True
