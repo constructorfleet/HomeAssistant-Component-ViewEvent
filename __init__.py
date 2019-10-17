@@ -78,7 +78,7 @@ class ViewEvent(object):
     def __init__(self, hass, conf):
         self._hass = hass
         _LOGGER.warning(str(conf))
-        self._components = conf.get(CONF_COMPONENTS, [])
+        self._components = conf[DOMAIN][CONF_COMPONENTS]
         hass.components.websocket_api.async_register_command(
             EVENT_TYPE_REQUEST_ROUTES,
             self._routes_requested_handler,
