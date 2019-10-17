@@ -9,6 +9,8 @@ import gc
 import logging
 
 from homeassistant.components.http import HomeAssistantView
+from homeassistant.components import websocket_api
+from homeassistant.core import callback
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -20,49 +22,25 @@ ATTR_ROUTE = 'route'
 
 DOMAIN = 'view_event'
 
-
-def _wrap_function(function, pre, post):
-    """Wrap a function with pre and post hooks."""
-
-    def _w(self, *args, **kwargs):
-        """Execute wrapped function."""
-        _LOGGER.warning("Entering wrapper")
-        try:
-            if pre:
-                _LOGGER.warning("Processing pre")
-                pre(self, *args, **kwargs)
-        except Exception as e:
-            _LOGGER.error('Failed to execute pre-invocation hook %s' % str(e))
-
-        _LOGGER.warning("Invoking original")
-        result = function(self, *args, **kwargs)
-
-        try:
-            if post:
-                _LOGGER.warning("Processing post")
-                post(self, *args, **kwargs)
-        except Exception as e:
-            _LOGGER.error('Failed to execute post-invocation hook %s' % str(e))
-
-        return result
-
-    return _w
+SCHEMA_REQUEST_ROUTES = \
+    websocket_api.BASE_COMMAND_MESSAGE_SCHEMA.extend({
+        'type': EVENT_TYPE_REQUEST_ROUTES
+    })
 
 
 def _get_routes(view):
-    if not view.cors_allowed:
-        return []
-
     urls = [view.url] + view.extra_urls
     routes = []
 
-    for method in ("get", "post", "delete", "put", "patch", "head", "options"):
+    for method in ["get", "post", "delete", "put", "patch", "head", "options"]:
+        _LOGGER.warn("Checking for handler for %s" % method)
         handler = getattr(view, method, None)
 
         if not handler:
             continue
 
         for url in urls:
+            _LOGGER.warn("Checking if should register %s" % url)
             if "api/" not in url:
                 continue
             routes.append({
@@ -88,25 +66,32 @@ class ViewEvent(object):
 
     def __init__(self, hass):
         self._hass = hass
-        HomeAssistantView.register = _wrap_function(
-            HomeAssistantView.register,
-            None,
-            self._handle_view_registration
+        hass.components.websocket_api.async_register_command(
+            EVENT_TYPE_REQUEST_ROUTES,
+            self._routes_requested_handler,
+            SCHEMA_REQUEST_ROUTES
+        )
+        HomeAssistantView.register = self._wrap_function(
+            HomeAssistantView.register
         )
         asyncio.ensure_future(self._get_already_registered_routes())
-        hass.bus.listen(EVENT_TYPE_REQUEST_ROUTES, self._routes_requested_handler)
 
-    def _routes_requested_handler(self, message):
+    @callback
+    def _routes_requested_handler(self, hass, connection, msg):
         self.send_routes = True
         for route in self.registered_routes:
             self._fire_event(route)
 
     def _handle_view_registration(self, view):
+        _LOGGER.warning("VIEW %s" % view.__class__.__name__)
+        routes = _get_routes(view)
+        _LOGGER.warning("ROUTES %s" % str(routes))
         for route in _get_routes(view):
             if not self.send_routes:
                 _LOGGER.warning("ADDING TO LIST")
                 self.registered_routes.append(route)
             else:
+                _LOGGER.warning("FIRING EVENT")
                 self._fire_event(route)
 
     def _fire_event(self, route):
@@ -117,5 +102,27 @@ class ViewEvent(object):
         )
 
     async def _get_already_registered_routes(self):
-        for route in self._hass.app.router.routes():
-            _LOGGER.warning("ROUTE %s" % str(route))
+        for obj in gc.get_objects():
+            _LOGGER.warning("Checking %s " % obj.__class__.__name__)
+            if isinstance(obj, HomeAssistantView):
+                _LOGGER.warning("Found existing view, processing")
+                self._handle_view_registration(obj)
+
+    def _wrap_function(self, function):
+        """Wrap a function with pre and post hooks."""
+
+        def _w(view, app, router):
+            """Execute wrapped function."""
+            _LOGGER.warning("Entering wrapper")
+            _LOGGER.warning("Invoking original")
+            result = function(view, app, router)
+            _LOGGER.warning("GOT %s" % str(result))
+
+            try:
+                self._handle_view_registration(view)
+            except Exception as e:
+                _LOGGER.error('Failed to execute post-invocation hook %s' % str(e))
+
+            return result
+
+        return _w
