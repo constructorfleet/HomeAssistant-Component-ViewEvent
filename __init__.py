@@ -14,11 +14,14 @@ _LOGGER = logging.getLogger(__name__)
 
 ATTR_METHOD = 'method'
 ATTR_AUTH_REQUIRED = 'auth_required'
-
-EVENT_TYPE = 'route_registered'
+EVENT_TYPE_REQUEST_ROUTES = 'request_routes'
+EVENT_TYPE_ROUTE_REGISTERED = 'route_registered'
 ATTR_ROUTE = 'route'
 
 DOMAIN = 'view_event'
+
+SEND_ROUTES = False
+REGISTERED_ROUTES = []
 
 
 def _wrap_function(function, pre, post):
@@ -51,16 +54,13 @@ def _get_fire_event(hass):
 
     def _fire_event(view, *args, **kwargs):
         for route in _get_routes(view):
-            _LOGGER.warning("Firing event for %s %s" % (route[ATTR_ROUTE], route[ATTR_METHOD]))
-            hass.bus.async_fire(
-                event_type=EVENT_TYPE,
-                event_data={
-                    ATTR_ROUTE: route[ATTR_ROUTE],
-                    ATTR_METHOD: route[ATTR_METHOD],
-                    ATTR_AUTH_REQUIRED: view.requires_auth
-                },
-                origin=EventOrigin.local
-            )
+            if not SEND_ROUTES:
+                REGISTERED_ROUTES.append(route)
+            else:
+                hass.bus.async_fire(
+                    event_type=EVENT_TYPE_ROUTE_REGISTERED,
+                    event_data=route
+                )
 
     return _fire_event
 
@@ -88,17 +88,31 @@ def _get_routes(view):
         for url in urls:
             routes.append({
                 ATTR_ROUTE: url,
-                ATTR_METHOD: method
+                ATTR_METHOD: method,
+                ATTR_AUTH_REQUIRED: view.requires_auth
             })
 
     return routes
+
+
+def _get_routes_requested_handler(fire_event):
+    def _routes_requested_handler(message):
+        SEND_ROUTES = True
+        for route in REGISTERED_ROUTES:
+            fire_event(
+                event_type=EVENT_TYPE_ROUTE_REGISTERED,
+                event_data=REGISTERED_ROUTES
+            )
+
+    return _routes_requested_handler
 
 
 async def async_setup(hass, config):
     """Set up the view_event component."""
     _LOGGER.warning("SETTING UP")
     fire_event = _get_fire_event(hass)
-    
+    hass.bus.listen(EVENT_TYPE_REQUEST_ROUTES, _get_routes_requested_handler(fire_event))
+
     HomeAssistantView.register = _wrap_function(
         HomeAssistantView.register,
         None,
