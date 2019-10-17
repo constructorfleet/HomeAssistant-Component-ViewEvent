@@ -99,7 +99,7 @@ class ViewEvent(object):
         _LOGGER.warning("VIEW %s" % view.__class__.__name__)
         routes = _get_routes(view, self._components)
         _LOGGER.warning("ROUTES %s" % str(routes))
-        for route in _get_routes(view):
+        for route in routes:
             if not self.send_routes:
                 _LOGGER.warning("ADDING TO LIST")
                 self.registered_routes.append(route)
