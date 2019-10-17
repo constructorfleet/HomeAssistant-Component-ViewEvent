@@ -47,11 +47,11 @@ def _wrap_function(function, pre, post):
 
 def _get_fire_event(hass):
     """Get the function that fires the event."""
-    _LOGGER.info("Retrieving fire event method")
+    _LOGGER.warning("Retrieving fire event method")
 
     def _fire_event(view, *args, **kwargs):
         for route in _get_routes(view):
-            _LOGGER.info("Firing event for %s %s" % (route[ATTR_ROUTE], route[ATTR_METHOD]))
+            _LOGGER.warning("Firing event for %s %s" % (route[ATTR_ROUTE], route[ATTR_METHOD]))
             hass.bus.async_fire(
                 event_type=EVENT_TYPE,
                 event_data={
@@ -68,7 +68,7 @@ def _get_fire_event(hass):
 def _process_existing_views(fire_event):
     for obj in gc.get_objects():
         if isinstance(obj, HomeAssistantView):
-            _LOGGER.info("Found existing view, processing")
+            _LOGGER.warning("Found existing view, processing")
             fire_event(obj)
 
 
@@ -96,6 +96,7 @@ def _get_routes(view):
 
 async def async_setup(hass, config):
     """Set up the view_event component."""
+    _LOGGER.warning("SETTING UP")
     fire_event = _get_fire_event(hass)
     
     HomeAssistantView.register = _wrap_function(
