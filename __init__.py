@@ -70,8 +70,9 @@ def _get_fire_event(hass):
     return _fire_event
 
 
-def _process_existing_views(fire_event):
+async def _process_existing_views(fire_event):
     for obj in gc.get_objects():
+        _LOGGER.warning("Checking %s " % obj.__class__.__name__)
         if isinstance(obj, HomeAssistantView):
             _LOGGER.warning("Found existing view, processing")
             fire_event(obj)
@@ -121,12 +122,14 @@ async def async_setup(hass, config):
     fire_event = _get_fire_event(hass)
     hass.bus.listen(EVENT_TYPE_REQUEST_ROUTES, _get_routes_requested_handler(fire_event))
 
+    _LOGGER.warning("WRAPPING")
     HomeAssistantView.register = _wrap_function(
         HomeAssistantView.register,
         None,
         fire_event
     )
 
-    _process_existing_views(fire_event)
+    _LOGGER.warning("PROCESSING VIEWS")
+    await _process_existing_views(fire_event)
 
     return True
