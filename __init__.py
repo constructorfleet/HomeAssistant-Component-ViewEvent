@@ -117,8 +117,5 @@ class ViewEvent(object):
         )
 
     async def _get_already_registered_routes(self):
-        for obj in gc.get_objects():
-            _LOGGER.warning("Checking %s " % obj.__class__.__name__)
-            if isinstance(obj, HomeAssistantView):
-                _LOGGER.warning("Found existing view, processing")
-                self._handle_view_registration(obj)
+        for route in self._hass.app.router.routes():
+            _LOGGER.warning("ROUTE %s" % str(route))
