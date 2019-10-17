@@ -7,10 +7,12 @@ https://home-assistant.io/components/remote_homeassistant/
 import asyncio
 import gc
 import logging
+import voluptuous as vol
 
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.components import websocket_api
 from homeassistant.core import callback
+import homeassistant.helpers.config_validation as cv
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -20,6 +22,8 @@ EVENT_TYPE_REQUEST_ROUTES = 'request_routes'
 EVENT_TYPE_ROUTE_REGISTERED = 'route_registered'
 ATTR_ROUTE = 'route'
 
+CONF_COMPONENTS = "domains"
+
 DOMAIN = 'view_event'
 
 SCHEMA_REQUEST_ROUTES = \
@@ -27,8 +31,15 @@ SCHEMA_REQUEST_ROUTES = \
         'type': EVENT_TYPE_REQUEST_ROUTES
     })
 
+CONFIG_SCHEMA = vol.Schema({
+    DOMAIN: vol.Schema({
+        vol.Optional(CONF_COMPONENTS, default=[]): vol.All(cv.ensure_list,
+                                                           [cv.slugify]),
+    }),
+}, extra=vol.ALLOW_EXTRA)
 
-def _get_routes(view):
+
+def _get_routes(view, components):
     urls = [view.url] + view.extra_urls
     routes = []
 
@@ -41,7 +52,7 @@ def _get_routes(view):
 
         for url in urls:
             _LOGGER.warn("Checking if should register %s" % url)
-            if "api/" not in url:
+            if "api" not in url and (len(components) == 0 or not any(component in url for component in components)):
                 continue
             routes.append({
                 ATTR_ROUTE: url,
@@ -55,7 +66,7 @@ def _get_routes(view):
 async def async_setup(hass, config):
     """Set up the view_event component."""
 
-    ViewEvent(hass)
+    ViewEvent(hass, config)
 
     return True
 
@@ -64,8 +75,9 @@ class ViewEvent(object):
     registered_routes = []
     send_routes = False
 
-    def __init__(self, hass):
+    def __init__(self, hass, conf):
         self._hass = hass
+        self._components = conf[CONF_COMPONENTS]
         hass.components.websocket_api.async_register_command(
             EVENT_TYPE_REQUEST_ROUTES,
             self._routes_requested_handler,
@@ -84,7 +96,7 @@ class ViewEvent(object):
 
     def _handle_view_registration(self, view):
         _LOGGER.warning("VIEW %s" % view.__class__.__name__)
-        routes = _get_routes(view)
+        routes = _get_routes(view, self._components)
         _LOGGER.warning("ROUTES %s" % str(routes))
         for route in _get_routes(view):
             if not self.send_routes:
