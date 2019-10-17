@@ -97,11 +97,12 @@ def _get_routes(view):
 
 def _get_routes_requested_handler(fire_event):
     def _routes_requested_handler(message):
+        global SEND_ROUTES
         SEND_ROUTES = True
         for route in REGISTERED_ROUTES:
             fire_event(
                 event_type=EVENT_TYPE_ROUTE_REGISTERED,
-                event_data=REGISTERED_ROUTES
+                event_data=route
             )
 
     return _routes_requested_handler
