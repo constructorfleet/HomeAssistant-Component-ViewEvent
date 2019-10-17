@@ -34,7 +34,7 @@ SCHEMA_REQUEST_ROUTES = \
 CONFIG_SCHEMA = vol.Schema({
     DOMAIN: vol.Schema({
         vol.Optional(CONF_COMPONENTS, default=[]): vol.All(cv.ensure_list,
-                                                           [cv.slugify]),
+                                                           [cv.slugify])
     }),
 }, extra=vol.ALLOW_EXTRA)
 
@@ -77,7 +77,8 @@ class ViewEvent(object):
 
     def __init__(self, hass, conf):
         self._hass = hass
-        self._components = conf[CONF_COMPONENTS]
+        _LOGGER.warning(str(conf))
+        self._components = conf.get(CONF_COMPONENTS, [])
         hass.components.websocket_api.async_register_command(
             EVENT_TYPE_REQUEST_ROUTES,
             self._routes_requested_handler,
