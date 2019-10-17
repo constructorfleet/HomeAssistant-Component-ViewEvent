@@ -58,7 +58,7 @@ def _get_fire_event(hass):
 
     def _fire_event(view, *args, **kwargs):
         _LOGGER.warning("Trying to fire event")
-        for route in REGISTERED_ROUTES:
+        for route in _get_routes(view):
             _LOGGER.warning("Firing event for %s %s" % (route[ATTR_ROUTE], route[ATTR_METHOD]))
             route_event = {
                 ATTR_ROUTE: route[ATTR_ROUTE],
