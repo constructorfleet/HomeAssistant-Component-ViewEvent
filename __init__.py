@@ -86,6 +86,8 @@ def _get_routes(view):
             continue
 
         for url in urls:
+            if "api/" not in url:
+                continue
             routes.append({
                 ATTR_ROUTE: url,
                 ATTR_METHOD: method
