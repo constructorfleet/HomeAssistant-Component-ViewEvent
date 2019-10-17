@@ -53,7 +53,7 @@ def _get_routes(view, components):
         for url in urls:
             _LOGGER.warn("Checking if should register %s" % url)
             _LOGGER.warning("URL in components?? %s" % str(any(component in url for component in components)))
-            if "api" not in url and (len(components) == 0 or not any(component in url for component in components)):
+            if len(components) == 0 or not any(component in url for component in components):
                 continue
             routes.append({
                 ATTR_ROUTE: url,
