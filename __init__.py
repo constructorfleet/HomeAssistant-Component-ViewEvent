@@ -53,7 +53,7 @@ def _get_routes(view, components):
         for url in urls:
             _LOGGER.warn("Checking if should register %s" % url)
             _LOGGER.warning("URL in components?? %s" % str(any(component in url for component in components)))
-            if len(components) == 0 or not any(component in url for component in components):
+            if not any(component in url for component in components):
                 continue
             routes.append({
                 ATTR_ROUTE: url,
@@ -114,13 +114,6 @@ class ViewEvent(object):
             event_type=EVENT_TYPE_ROUTE_REGISTERED,
             event_data=route
         )
-
-    async def _get_already_registered_routes(self):
-        for obj in gc.get_objects():
-            _LOGGER.warning("Checking %s " % obj.__class__.__name__)
-            if isinstance(obj, HomeAssistantView):
-                _LOGGER.warning("Found existing view, processing")
-                self._handle_view_registration(obj)
 
     def _wrap_function(self, function):
         """Wrap a function with pre and post hooks."""
