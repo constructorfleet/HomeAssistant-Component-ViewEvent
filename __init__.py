@@ -4,6 +4,7 @@ Fire an event when an API route is registered.
 For more details about this component, please refer to the documentation at
 https://home-assistant.io/components/remote_homeassistant/
 """
+import asyncio
 import gc
 import logging
 
@@ -92,13 +93,8 @@ class ViewEvent(object):
             None,
             self._handle_view_registration
         )
+        asyncio.ensure_future(self._get_already_registered_routes())
         hass.bus.listen(EVENT_TYPE_REQUEST_ROUTES, self._routes_requested_handler)
-
-        for obj in gc.get_objects():
-            _LOGGER.warning("Checking %s " % obj.__class__.__name__)
-            if isinstance(obj, HomeAssistantView):
-                _LOGGER.warning("Found existing view, processing")
-                self._handle_view_registration(obj)
 
     def _routes_requested_handler(self, message):
         self.send_routes = True
@@ -119,3 +115,10 @@ class ViewEvent(object):
             event_type=EVENT_TYPE_ROUTE_REGISTERED,
             event_data=route
         )
+
+    async def _get_already_registered_routes(self):
+        for obj in gc.get_objects():
+            _LOGGER.warning("Checking %s " % obj.__class__.__name__)
+            if isinstance(obj, HomeAssistantView):
+                _LOGGER.warning("Found existing view, processing")
+                self._handle_view_registration(obj)
