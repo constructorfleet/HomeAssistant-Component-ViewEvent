@@ -74,7 +74,7 @@ class ViewEvent(object):
         HomeAssistantView.register = self._wrap_function(
             HomeAssistantView.register
         )
-        asyncio.ensure_future(self._get_already_registered_routes())
+        # asyncio.ensure_future(self._get_already_registered_routes())asyncio.ensure_future(self._get_already_registered_routes())
 
     @callback
     def _routes_requested_handler(self, hass, connection, msg):
