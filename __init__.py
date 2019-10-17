@@ -116,9 +116,6 @@ def _route_requested_handler(hass):
                 event_data=route,
                 origin=EventOrigin.local
             )
-        hass.bus.async_fire(
-
-        )
 
     return send_registered_routes
 
