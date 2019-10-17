@@ -8,7 +8,6 @@ import gc
 import logging
 
 from homeassistant.components.http import HomeAssistantView
-from homeassistant.core import EventOrigin
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -19,9 +18,6 @@ EVENT_TYPE_ROUTE_REGISTERED = 'route_registered'
 ATTR_ROUTE = 'route'
 
 DOMAIN = 'view_event'
-
-SEND_ROUTES = False
-REGISTERED_ROUTES = []
 
 
 def _wrap_function(function, pre, post):
@@ -52,32 +48,6 @@ def _wrap_function(function, pre, post):
     return _w
 
 
-def _get_fire_event(hass):
-    """Get the function that fires the event."""
-    _LOGGER.warning("Retrieving fire event method")
-
-    def _fire_event(view, *args, **kwargs):
-        _LOGGER.warning("Trying to fire event")
-        for route in _get_routes(view):
-            if not SEND_ROUTES:
-                REGISTERED_ROUTES.append(route)
-            else:
-                hass.bus.async_fire(
-                    event_type=EVENT_TYPE_ROUTE_REGISTERED,
-                    event_data=route
-                )
-
-    return _fire_event
-
-
-async def _process_existing_views(fire_event):
-    for obj in gc.get_objects():
-        _LOGGER.warning("Checking %s " % obj.__class__.__name__)
-        if isinstance(obj, HomeAssistantView):
-            _LOGGER.warning("Found existing view, processing")
-            fire_event(obj)
-
-
 def _get_routes(view):
     if not view.cors_allowed:
         return []
@@ -103,33 +73,49 @@ def _get_routes(view):
     return routes
 
 
-def _get_routes_requested_handler(fire_event):
-    def _routes_requested_handler(message):
-        global SEND_ROUTES
-        SEND_ROUTES = True
-        for route in REGISTERED_ROUTES:
-            fire_event(
-                event_type=EVENT_TYPE_ROUTE_REGISTERED,
-                event_data=route
-            )
-
-    return _routes_requested_handler
-
-
 async def async_setup(hass, config):
     """Set up the view_event component."""
-    _LOGGER.warning("SETTING UP")
-    fire_event = _get_fire_event(hass)
-    hass.bus.listen(EVENT_TYPE_REQUEST_ROUTES, _get_routes_requested_handler(fire_event))
 
-    _LOGGER.warning("WRAPPING")
-    HomeAssistantView.register = _wrap_function(
-        HomeAssistantView.register,
-        None,
-        fire_event
-    )
-
-    _LOGGER.warning("PROCESSING VIEWS")
-    await _process_existing_views(fire_event)
+    ViewEvent(hass)
 
     return True
+
+
+class ViewEvent(object):
+    registered_routes = []
+    send_routes = False
+
+    def __init__(self, hass):
+        self._hass = hass
+        HomeAssistantView.register = _wrap_function(
+            HomeAssistantView.register,
+            None,
+            self._handle_view_registration
+        )
+        hass.bus.listen(EVENT_TYPE_REQUEST_ROUTES, self._routes_requested_handler)
+
+        for obj in gc.get_objects():
+            _LOGGER.warning("Checking %s " % obj.__class__.__name__)
+            if isinstance(obj, HomeAssistantView):
+                _LOGGER.warning("Found existing view, processing")
+                self._handle_view_registration(obj)
+
+    def _routes_requested_handler(self, message):
+        self.send_routes = True
+        for route in self.registered_routes:
+            self._fire_event(route)
+
+    def _handle_view_registration(self, view):
+        for route in _get_routes(view):
+            if not self.send_routes:
+                _LOGGER.warning("ADDING TO LIST")
+                self.registered_routes.append(route)
+            else:
+                self._fire_event(route)
+
+    def _fire_event(self, route):
+        _LOGGER.warning("SENDING")
+        self._hass.bus.async_fire(
+            event_type=EVENT_TYPE_ROUTE_REGISTERED,
+            event_data=route
+        )
