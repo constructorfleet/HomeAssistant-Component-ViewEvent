@@ -22,7 +22,7 @@ EVENT_TYPE_REQUEST_ROUTES = 'request_routes'
 EVENT_TYPE_ROUTE_REGISTERED = 'route_registered'
 ATTR_ROUTE = 'route'
 
-CONF_COMPONENTS = "domains"
+CONF_COMPONENTS = "components"
 
 DOMAIN = 'view_event'
 
