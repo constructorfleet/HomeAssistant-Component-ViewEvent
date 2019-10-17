@@ -26,16 +26,20 @@ def _wrap_function(function, pre, post):
 
     def _w(self, *args, **kwargs):
         """Execute wrapped function."""
+        _LOGGER.warning("Entering wrapper")
         try:
             if pre:
+                _LOGGER.warning("Processing pre")
                 pre(self, *args, **kwargs)
         except Exception as e:
             _LOGGER.error('Failed to execute pre-invocation hook %s' % str(e))
 
+        _LOGGER.warning("Invoking original")
         result = function(self, *args, **kwargs)
 
         try:
             if post:
+                _LOGGER.warning("Processing post")
                 post(self, *args, **kwargs)
         except Exception as e:
             _LOGGER.error('Failed to execute post-invocation hook %s' % str(e))
@@ -50,6 +54,7 @@ def _get_fire_event(hass):
     _LOGGER.warning("Retrieving fire event method")
 
     def _fire_event(view, *args, **kwargs):
+        _LOGGER.warning("Trying to fire event")
         for route in _get_routes(view):
             _LOGGER.warning("Firing event for %s %s" % (route[ATTR_ROUTE], route[ATTR_METHOD]))
             hass.bus.async_fire(
