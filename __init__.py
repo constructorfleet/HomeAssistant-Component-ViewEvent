@@ -22,7 +22,7 @@ EVENT_TYPE_REQUEST_ROUTES = 'request_routes'
 EVENT_TYPE_ROUTE_REGISTERED = 'route_registered'
 ATTR_ROUTE = 'route'
 
-CONF_COMPONENTS = "components"
+CONF_COMPONENTS = 'components'
 
 DOMAIN = 'view_event'
 
@@ -52,9 +52,8 @@ def _get_routes(view, components):
         _LOGGER.warning("Components %s" % str(components))
         for url in urls:
             _LOGGER.warn("Checking if should register %s" % url)
-            _LOGGER.warning("URL in components?? %s" % str(
-                len(components) != 0 and not any(component in url for component in components)))
-            if len(components) != 0 and not any(component in url for component in components):
+            _LOGGER.warning("URL in components?? %s" % str(any(component in url for component in components)))
+            if not any(component in url for component in components):
                 continue
             routes.append({
                 ATTR_ROUTE: url,
