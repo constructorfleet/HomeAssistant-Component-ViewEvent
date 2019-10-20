@@ -103,12 +103,15 @@ class ViewEvent(object):
         routes = _get_routes(view, self._components)
         _LOGGER.warning("ROUTES %s" % str(routes))
         for route in routes:
-            if not self.send_routes:
-                _LOGGER.warning("ADDING TO LIST")
-                self.registered_routes.append(route)
-            else:
-                _LOGGER.warning("FIRING EVENT")
-                self._fire_event(route)
+            self._handle_route_registration(route)
+
+    def _handle_route_registration(self, route):
+        if not self.send_routes:
+            _LOGGER.warning("ADDING TO LIST")
+            self.registered_routes.append(route)
+        else:
+            _LOGGER.warning("FIRING EVENT")
+            self._fire_event(route)
 
     def _fire_event(self, route):
         _LOGGER.warning("SENDING")
@@ -137,8 +140,9 @@ class ViewEvent(object):
         return _w
 
     async def get_already_registered_routes(self):
-        for obj in gc.get_objects():
-            _LOGGER.warning("Checking %s " % obj.__class__.__name__)
-            if isinstance(obj, HomeAssistantView):
-                _LOGGER.warning("Found existing view, processing")
-                self._handle_view_registration(obj)
+        for route in self._hass.http.app.router.routes():
+            self._handle_route_registration({
+                ATTR_ROUTE: route.canonical,
+                ATTR_METHOD: route.method,
+                ATTR_AUTH_REQUIRED: False
+            })
