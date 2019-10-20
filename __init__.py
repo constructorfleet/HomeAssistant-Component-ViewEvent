@@ -67,7 +67,9 @@ def _get_routes(view, components):
 async def async_setup(hass, config):
     """Set up the view_event component."""
 
-    ViewEvent(hass, config)
+    view_event = ViewEvent(hass, config)
+
+    view_event.get_already_registered_routes()
 
     return True
 
@@ -133,3 +135,10 @@ class ViewEvent(object):
             return result
 
         return _w
+
+    async def get_already_registered_routes(self):
+        for obj in gc.get_objects():
+            _LOGGER.warning("Checking %s " % obj.__class__.__name__)
+            if isinstance(obj, HomeAssistantView):
+                _LOGGER.warning("Found existing view, processing")
+                self._handle_view_registration(obj)
