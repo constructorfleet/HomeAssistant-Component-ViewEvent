@@ -52,8 +52,9 @@ def _get_routes(view, components):
         _LOGGER.warning("Components %s" % str(components))
         for url in urls:
             _LOGGER.warn("Checking if should register %s" % url)
-            _LOGGER.warning("URL in components?? %s" % str(any(component in url for component in components)))
-            if not any(component in url for component in components):
+            _LOGGER.warning("URL in components?? %s" % str(
+                len(components) != 0 and not any(component in url for component in components)))
+            if len(components) != 0 and not any(component in url for component in components):
                 continue
             routes.append({
                 ATTR_ROUTE: url,
@@ -88,7 +89,7 @@ class ViewEvent(object):
         HomeAssistantView.register = self._wrap_function(
             HomeAssistantView.register
         )
-        # asyncio.ensure_future(self._get_already_registered_routes())asyncio.ensure_future(self._get_already_registered_routes())
+        # asyncio.ensure_future(self._get_already_registered_routes())
 
     @callback
     def _routes_requested_handler(self, hass, connection, msg):
