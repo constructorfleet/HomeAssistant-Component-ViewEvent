@@ -33,8 +33,8 @@ SCHEMA_REQUEST_ROUTES = \
 
 CONFIG_SCHEMA = vol.Schema({
     DOMAIN: vol.Schema({
-        vol.Optional(CONF_COMPONENTS, default=[]): vol.All(cv.ensure_list,
-                                                           [cv.slugify])
+        vol.Required(CONF_COMPONENTS): vol.All(cv.ensure_list,
+                                               [cv.slugify])
     }),
 }, extra=vol.ALLOW_EXTRA)
 
