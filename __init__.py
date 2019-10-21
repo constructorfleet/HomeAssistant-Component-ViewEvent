@@ -101,7 +101,7 @@ class ViewEvent(object):
             self._fire_event(route)
 
     def _handle_view_registration(self, view):
-        routes = _get_routes(view, self._components)
+        routes = _get_routes(self._name, view, self._components)
         for route in routes:
             self._handle_route_registration(route)
 
