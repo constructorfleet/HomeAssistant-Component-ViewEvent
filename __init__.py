@@ -71,7 +71,7 @@ async def async_setup(hass, config):
 
     view_event = ViewEvent(hass, config)
 
-    view_event.get_already_registered_routes()
+    await view_event.get_already_registered_routes()
 
     return True
 
@@ -123,10 +123,7 @@ class ViewEvent(object):
 
         def _w(view, app, router):
             """Execute wrapped function."""
-            _LOGGER.warning("Entering wrapper")
-            _LOGGER.warning("Invoking original")
             result = function(view, app, router)
-            _LOGGER.warning("GOT %s" % str(result))
 
             try:
                 self._handle_view_registration(view)
