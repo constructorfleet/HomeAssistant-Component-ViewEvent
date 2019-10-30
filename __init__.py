@@ -137,7 +137,7 @@ class ViewEvent(object):
     async def get_already_registered_routes(self):
         for route in self._hass.http.app.router.routes():
             self._handle_route_registration({
-                ATTR_ROUTE: route.canonical,
+                ATTR_ROUTE: route.resource.canonical,
                 ATTR_METHOD: route.method,
                 ATTR_AUTH_REQUIRED: False,
                 ATTR_INSTANCE_NAME: self._name
