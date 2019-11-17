@@ -45,16 +45,21 @@ def _get_routes(instance_name, view, components):
     routes = []
 
     for method in ["get", "post", "delete", "put", "patch", "head", "options"]:
-        _LOGGER.warn("Checking for handler for %s" % method)
+        _LOGGER.debug("Checking for handler for %s", method)
         handler = getattr(view, method, None)
 
         if not handler:
             continue
-        _LOGGER.warning("Components %s" % str(components))
+        _LOGGER.warning("Components %s",
+                        str(components))
         for url in urls:
-            _LOGGER.warn("Checking if should register %s" % url)
-            _LOGGER.warning("URL in components?? %s" % str(any(component in url for component in components)))
-            if not str(url).startswith('/api/services') and not any(component in url for component in components):
+            _LOGGER.debug("Checking if should register %s", url)
+            _LOGGER.debug(
+                "URL in components?? %s",
+                str(any(component in url for component in components))
+            )
+            if not str(url).startswith('/api/services') and \
+                    not any(component in url for component in components):
                 continue
             routes.append({
                 ATTR_ROUTE: url,
@@ -76,7 +81,8 @@ async def async_setup(hass, config):
     return True
 
 
-class ViewEvent(object):
+class ViewEvent:
+    """Send route registered event to websocket."""
     registered_routes = []
     send_routes = False
 
@@ -86,19 +92,12 @@ class ViewEvent(object):
         self._name = conf[DOMAIN][CONF_NAME]
         hass.components.websocket_api.async_register_command(
             EVENT_TYPE_REQUEST_ROUTES,
-            self._routes_requested_handler,
+            self.routes_requested_handler,
             SCHEMA_REQUEST_ROUTES
         )
         HomeAssistantView.register = self._wrap_function(
             HomeAssistantView.register
         )
-        # asyncio.ensure_future(self._get_already_registered_routes())
-
-    @callback
-    def _routes_requested_handler(self, hass, connection, msg):
-        self.send_routes = True
-        for route in self.registered_routes:
-            self._fire_event(route)
 
     def _handle_view_registration(self, view):
         routes = _get_routes(self._name, view, self._components)
@@ -127,14 +126,18 @@ class ViewEvent(object):
 
             try:
                 self._handle_view_registration(view)
-            except Exception as e:
-                _LOGGER.error('Failed to execute post-invocation hook %s' % str(e))
+            except Exception as err:
+                _LOGGER.error(
+                    'Failed to execute post-invocation hook %s',
+                    str(err)
+                )
 
             return result
 
         return _w
 
     async def get_already_registered_routes(self):
+        """Retrieve registered routes and send to websocket."""
         for route in self._hass.http.app.router.routes():
             self._handle_route_registration({
                 ATTR_ROUTE: route.resource.canonical,
@@ -142,3 +145,10 @@ class ViewEvent(object):
                 ATTR_AUTH_REQUIRED: False,
                 ATTR_INSTANCE_NAME: self._name
             })
+
+    @callback
+    def routes_requested_handler(self, hass, connection, msg):
+        """Handle websocket command requesting existing routes."""
+        self.send_routes = True
+        for route in self.registered_routes:
+            self._fire_event(route)
