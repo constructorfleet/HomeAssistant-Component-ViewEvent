@@ -74,8 +74,6 @@ async def async_setup(hass, config):
 
     view_event = ViewEvent(hass, config)
 
-    view_event.get_already_registered_routes()
-
     return True
 
 
@@ -96,6 +94,7 @@ class ViewEvent:
         HomeAssistantView.register = self._wrap_function(
             HomeAssistantView.register
         )
+        self._hass.loop.create_task(self.get_already_registered_routes())
 
     def _handle_view_registration(self, view):
         routes = _get_routes(self._name, view, self._components)
@@ -133,6 +132,7 @@ class ViewEvent:
 
         return _w
 
+    @callback
     def get_already_registered_routes(self):
         """Retrieve registered routes and send to websocket."""
         for route in self._hass.http.app.router.routes():
