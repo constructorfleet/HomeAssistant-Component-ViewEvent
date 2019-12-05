@@ -74,7 +74,7 @@ async def async_setup(hass, config):
 
     view_event = ViewEvent(hass, config)
 
-    view_event.get_already_registered_routes()
+    await view_event.get_already_registered_routes()
 
     return True
 
@@ -133,7 +133,7 @@ class ViewEvent:
 
         return _w
 
-    def get_already_registered_routes(self):
+    async def get_already_registered_routes(self):
         """Retrieve registered routes and send to websocket."""
         for route in self._hass.http.app.router.routes():
             self._handle_route_registration({
