@@ -50,8 +50,6 @@ def _get_routes(instance_name, view, components):
 
         if not handler:
             continue
-        _LOGGER.warning("Components %s",
-                        str(components))
         for url in urls:
             _LOGGER.debug("Checking if should register %s", url)
             _LOGGER.debug(
@@ -111,7 +109,6 @@ class ViewEvent:
             self._fire_event(route)
 
     def _fire_event(self, route):
-        _LOGGER.warning("SENDING")
         self._hass.bus.async_fire(
             event_type=EVENT_TYPE_ROUTE_REGISTERED,
             event_data=route
