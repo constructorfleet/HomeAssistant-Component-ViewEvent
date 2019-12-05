@@ -72,7 +72,7 @@ def _get_routes(instance_name, view, components):
 async def async_setup(hass, config):
     """Set up the view_event component."""
 
-    view_event = ViewEvent(hass, config)
+    ViewEvent(hass, config)
 
     return True
 
