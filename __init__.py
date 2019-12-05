@@ -96,10 +96,17 @@ class ViewEvent:
         )
         self._hass.loop.create_task(self.get_already_registered_routes())
 
+    @callback
     def _handle_view_registration(self, view):
-        routes = _get_routes(self._name, view, self._components)
-        for route in routes:
-            self._handle_route_registration(route)
+        try:
+            routes = _get_routes(self._name, view, self._components)
+            for route in routes:
+                self._handle_route_registration(route)
+        except Exception as err:
+            _LOGGER.error(
+                'Failed to execute post-invocation hook %s',
+                str(err)
+            )
 
     def _handle_route_registration(self, route):
         if not self.send_routes:
@@ -120,13 +127,7 @@ class ViewEvent:
             """Execute wrapped function."""
             result = function(view, app, router)
 
-            try:
-                self._handle_view_registration(view)
-            except Exception as err:
-                _LOGGER.error(
-                    'Failed to execute post-invocation hook %s',
-                    str(err)
-                )
+            self._hass.loop.create_task(self._handle_view_registration(view))
 
             return result
 
