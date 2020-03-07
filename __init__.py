@@ -22,7 +22,6 @@ EVENT_TYPE_REQUEST_ROUTES = 'request_routes'
 EVENT_TYPE_ROUTE_REGISTERED = 'route_registered'
 
 CONF_COMPONENTS = 'components'
-CONF_NAME = 'name'
 
 DOMAIN = 'view_event'
 
@@ -33,7 +32,6 @@ SCHEMA_REQUEST_ROUTES = \
 
 CONFIG_SCHEMA = vol.Schema({
     DOMAIN: vol.Schema({
-        vol.Required(CONF_NAME): cv.string,
         vol.Required(CONF_COMPONENTS): vol.All(cv.ensure_list,
                                                [cv.slugify])
     }),
@@ -87,7 +85,7 @@ class ViewEvent:
     def __init__(self, hass, conf):
         self._hass = hass
         self._components = conf[DOMAIN][CONF_COMPONENTS]
-        self._name = conf[DOMAIN][CONF_NAME]
+        self._name = hass.config.location_name
         hass.components.websocket_api.async_register_command(
             EVENT_TYPE_REQUEST_ROUTES,
             self.routes_requested_handler,
