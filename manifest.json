@@ -2,7 +2,9 @@
   "domain": "view_event",
   "name": "View Event",
   "documentation": "https://github.com/constructorfleet/HomeAssistant-Component-ViewEvent",
-  "dependencies": [],
+  "dependencies": [
+    "http"
+  ],
   "requirements": [
     "voluptuous==0.11.5"
   ],

@@ -18,6 +18,8 @@ ATTR_METHOD = 'method'
 ATTR_ROUTE = 'route'
 ATTR_AUTH_REQUIRED = 'auth_required'
 ATTR_INSTANCE_NAME = 'instance_name'
+ATTR_INSTANCE_IP = 'instance_ip'
+ATTR_INSTANCE_PORT = 'instance_port'
 EVENT_TYPE_REQUEST_ROUTES = 'request_routes'
 EVENT_TYPE_ROUTE_REGISTERED = 'route_registered'
 
@@ -37,34 +39,6 @@ CONFIG_SCHEMA = vol.Schema({
     }),
 }, extra=vol.ALLOW_EXTRA)
 
-
-def _get_routes(instance_name, view, components):
-    urls = [view.url] + view.extra_urls
-    routes = []
-
-    for method in ["get", "post", "delete", "put", "patch", "head", "options"]:
-        _LOGGER.debug("Checking for handler for %s", method)
-        handler = getattr(view, method, None)
-
-        if not handler:
-            continue
-        for url in urls:
-            _LOGGER.debug("Checking if should register %s", url)
-            _LOGGER.debug(
-                "URL in components?? %s",
-                str(any(component in url for component in components))
-            )
-            if not str(url).startswith('/api/services') and \
-                    not any(component in url for component in components):
-                continue
-            routes.append({
-                ATTR_ROUTE: url,
-                ATTR_METHOD: method,
-                ATTR_AUTH_REQUIRED: view.requires_auth,
-                ATTR_INSTANCE_NAME: instance_name
-            })
-
-    return routes
 
 
 async def async_setup(hass, config):
@@ -86,6 +60,8 @@ class ViewEvent:
         self._hass = hass
         self._components = conf[DOMAIN][CONF_COMPONENTS]
         self._name = hass.config.location_name
+        self._host = hass.http.server_host
+        self._port = hass.http.server_port
         hass.components.websocket_api.async_register_command(
             EVENT_TYPE_REQUEST_ROUTES,
             self.routes_requested_handler,
@@ -95,8 +71,38 @@ class ViewEvent:
             HomeAssistantView.register
         )
 
+    def _get_routes(self, view):
+        urls = [view.url] + view.extra_urls
+        routes = []
+
+        for method in ["get", "post", "delete", "put", "patch", "head", "options"]:
+            _LOGGER.debug("Checking for handler for %s", method)
+            handler = getattr(view, method, None)
+
+            if not handler:
+                continue
+            for url in urls:
+                _LOGGER.debug("Checking if should register %s", url)
+                _LOGGER.debug(
+                    "URL in components?? %s",
+                    str(any(component in url for component in self._components))
+                )
+                if not str(url).startswith('/api/services') and \
+                        not any(component in url for component in self._components):
+                    continue
+                routes.append({
+                    ATTR_ROUTE: url,
+                    ATTR_METHOD: method,
+                    ATTR_AUTH_REQUIRED: view.requires_auth,
+                    ATTR_INSTANCE_NAME: self._name,
+                    ATTR_INSTANCE_IP: self._host,
+                    ATTR_INSTANCE_PORT: self._port
+                })
+
+        return routes
+
     def _handle_view_registration(self, view):
-        routes = _get_routes(self._name, view, self._components)
+        routes = self._get_routes(view)
         for route in routes:
             self._handle_route_registration(route)
 
@@ -138,7 +144,9 @@ class ViewEvent:
                 ATTR_ROUTE: route.resource.canonical,
                 ATTR_METHOD: route.method,
                 ATTR_AUTH_REQUIRED: False,
-                ATTR_INSTANCE_NAME: self._name
+                ATTR_INSTANCE_NAME: self._name,
+                ATTR_INSTANCE_IP: self._host,
+                ATTR_INSTANCE_PORT: self._port
             })
 
     @callback
