@@ -84,14 +84,6 @@ class ViewEvent:
             if not handler:
                 continue
             for url in urls:
-                _LOGGER.debug("Checking if should register %s", url)
-                _LOGGER.debug(
-                    "URL in components?? %s",
-                    str(any(component in url for component in self._components))
-                )
-                if not str(url).startswith('/api/services') and \
-                        not any(component in url for component in self._components):
-                    continue
                 routes.append({
                     ATTR_ROUTE: url,
                     ATTR_METHOD: method,
@@ -109,6 +101,16 @@ class ViewEvent:
             self._handle_route_registration(route)
 
     def _handle_route_registration(self, route):
+        url = route[ATTR_ROUTE]
+        _LOGGER.debug("Checking if should register %s", url)
+        _LOGGER.debug(
+            "URL in components?? %s",
+            str(any(component in url for component in self._components))
+        )
+        if not str(url).startswith('/api/services') and \
+                not any(component in url for component in self._components):
+            return
+        self.registered_routes.append(route)
         self._fire_event(route)
 
     def _fire_event(self, route):
