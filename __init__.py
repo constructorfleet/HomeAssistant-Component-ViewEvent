@@ -5,11 +5,13 @@ For more details about this component, please refer to the documentation at
 https://home-assistant.io/components/remote_homeassistant/
 """
 import logging
+import jwt
 
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant.components import websocket_api
 from homeassistant.components.http import HomeAssistantView
+from homeassistant.components.http.auth import DATA_SIGN_SECRET
 from homeassistant.core import callback
 
 _LOGGER = logging.getLogger(__name__)
@@ -20,6 +22,7 @@ ATTR_AUTH_REQUIRED = 'auth_required'
 ATTR_INSTANCE_NAME = 'instance_name'
 ATTR_INSTANCE_IP = 'instance_ip'
 ATTR_INSTANCE_PORT = 'instance_port'
+ATTR_SIGNATURE = 'signature'
 EVENT_TYPE_REQUEST_ROUTES = 'request_routes'
 EVENT_TYPE_ROUTE_REGISTERED = 'route_registered'
 
@@ -56,6 +59,7 @@ class ViewEvent:
 
     def __init__(self, hass, conf):
         self._hass = hass
+        self._signature = self._hass.data[DATA_SIGN_SECRET]
         self._components = conf[DOMAIN][CONF_COMPONENTS]
         self._name = hass.config.location_name
         self._host = hass.http.server_host
@@ -90,7 +94,8 @@ class ViewEvent:
                     ATTR_AUTH_REQUIRED: False,
                     ATTR_INSTANCE_NAME: self._name,
                     ATTR_INSTANCE_IP: self._host,
-                    ATTR_INSTANCE_PORT: self._port
+                    ATTR_INSTANCE_PORT: self._port,
+                    ATTR_SIGNATURE: self._signature
                 })
 
         return routes
@@ -147,7 +152,8 @@ class ViewEvent:
                 ATTR_AUTH_REQUIRED: False,
                 ATTR_INSTANCE_NAME: self._name,
                 ATTR_INSTANCE_IP: self._host,
-                ATTR_INSTANCE_PORT: self._port
+                ATTR_INSTANCE_PORT: self._port,
+                ATTR_SIGNATURE: self._signature
             })
 
     @callback
