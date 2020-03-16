@@ -93,7 +93,7 @@ class ViewEvent:
                 routes.append({
                     ATTR_ROUTE: url,
                     ATTR_METHOD: method,
-                    ATTR_AUTH_REQUIRED: view.requires_auth,
+                    ATTR_AUTH_REQUIRED: False,
                     ATTR_INSTANCE_NAME: self._name,
                     ATTR_INSTANCE_IP: self._host,
                     ATTR_INSTANCE_PORT: self._port
