@@ -40,7 +40,6 @@ CONFIG_SCHEMA = vol.Schema({
 }, extra=vol.ALLOW_EXTRA)
 
 
-
 async def async_setup(hass, config):
     """Set up the view_event component."""
 
@@ -62,9 +61,13 @@ class ViewEvent:
         self._name = hass.config.location_name
         self._host = hass.http.server_host
         self._port = hass.http.server_port
+        hass.bus.async_listen(
+            EVENT_TYPE_REQUEST_ROUTES,
+            self.routes_requested_bus_handler
+        )
         hass.components.websocket_api.async_register_command(
             EVENT_TYPE_REQUEST_ROUTES,
-            self.routes_requested_handler,
+            self.routes_requested_ws_handler,
             SCHEMA_REQUEST_ROUTES
         )
         HomeAssistantView.register = self._wrap_function(
@@ -150,8 +153,16 @@ class ViewEvent:
             })
 
     @callback
-    def routes_requested_handler(self, hass, connection, msg):
+    def routes_requested_ws_handler(self, hass, connection, msg):
         """Handle websocket command requesting existing routes."""
+        self._send_routes()
+
+    @callback
+    def routes_requested_bus_handler(self, event):
+        """Handle event bus event for requesting existing routes."""
+        self._send_routes()
+
+    def _send_routes(self):
         self.send_routes = True
         for route in self.registered_routes:
             self._fire_event(route)
