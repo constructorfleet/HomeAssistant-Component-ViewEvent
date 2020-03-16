@@ -5,11 +5,12 @@ For more details about this component, please refer to the documentation at
 https://home-assistant.io/components/remote_homeassistant/
 """
 import logging
-import jwt
+from datetime import timedelta
 
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant.components import websocket_api
+from homeassistant.components.auth import TOKEN_TYPE_LONG_LIVED_ACCESS_TOKEN
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.components.http.auth import DATA_SIGN_SECRET
 from homeassistant.core import callback
@@ -22,13 +23,15 @@ ATTR_AUTH_REQUIRED = 'auth_required'
 ATTR_INSTANCE_NAME = 'instance_name'
 ATTR_INSTANCE_IP = 'instance_ip'
 ATTR_INSTANCE_PORT = 'instance_port'
-ATTR_SIGNATURE = 'signature'
+ATTR_TOKEN = 'token'
 EVENT_TYPE_REQUEST_ROUTES = 'request_routes'
 EVENT_TYPE_ROUTE_REGISTERED = 'route_registered'
 
 CONF_COMPONENTS = 'components'
 
 DOMAIN = 'view_event'
+
+CLUSTER_TOKEN_NAME = 'internal_cluster'
 
 SCHEMA_REQUEST_ROUTES = \
     websocket_api.BASE_COMMAND_MESSAGE_SCHEMA.extend({
@@ -46,7 +49,29 @@ CONFIG_SCHEMA = vol.Schema({
 async def async_setup(hass, config):
     """Set up the view_event component."""
 
-    view_event = ViewEvent(hass, config)
+    user_owner = await hass.auth.async_get_owner()
+    if not user_owner:
+        _LOGGER.error('No admin user set up')
+        return False
+
+    for token in [token for token in user_owner.refresh_tokens if
+                  token.token_type == TOKEN_TYPE_LONG_LIVED_ACCESS_TOKEN and
+                  token.client_name == CLUSTER_TOKEN_NAME]:
+        await hass.auth.async_remove_refresh_token(token)
+
+    refresh_token = await hass.auth.async_create_refresh_token(
+        user_owner,
+        client_name=CLUSTER_TOKEN_NAME,
+        token_type=TOKEN_TYPE_LONG_LIVED_ACCESS_TOKEN,
+        access_token_expiration=timedelta(days=3650),
+    )
+    access_token = hass.auth.async_create_access_token(refresh_token)
+
+    view_event = ViewEvent(
+        hass,
+        config,
+        access_token
+    )
 
     await view_event.get_already_registered_routes()
 
@@ -57,9 +82,9 @@ class ViewEvent:
     """Send route registered event to websocket."""
     registered_routes = []
 
-    def __init__(self, hass, conf):
+    def __init__(self, hass, conf, access_token):
         self._hass = hass
-        self._signature = self._hass.data[DATA_SIGN_SECRET]
+        self._token = access_token
         self._components = conf[DOMAIN][CONF_COMPONENTS]
         self._name = hass.config.location_name
         self._host = hass.http.server_host
@@ -95,7 +120,7 @@ class ViewEvent:
                     ATTR_INSTANCE_NAME: self._name,
                     ATTR_INSTANCE_IP: self._host,
                     ATTR_INSTANCE_PORT: self._port,
-                    ATTR_SIGNATURE: self._signature
+                    ATTR_TOKEN: self._token
                 })
 
         return routes
@@ -153,7 +178,7 @@ class ViewEvent:
                 ATTR_INSTANCE_NAME: self._name,
                 ATTR_INSTANCE_IP: self._host,
                 ATTR_INSTANCE_PORT: self._port,
-                ATTR_SIGNATURE: self._signature
+                ATTR_TOKEN: self._token
             })
 
     @callback
