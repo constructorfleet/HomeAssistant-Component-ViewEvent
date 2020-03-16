@@ -54,7 +54,7 @@ async def async_setup(hass, config):
         _LOGGER.error('No admin user set up')
         return False
 
-    for token in [token for token in user_owner.refresh_tokens if
+    for token in [token for token in user_owner.refresh_tokens.values() if
                   token.token_type == TOKEN_TYPE_LONG_LIVED_ACCESS_TOKEN and
                   token.client_name == CLUSTER_TOKEN_NAME]:
         await hass.auth.async_remove_refresh_token(token)
