@@ -53,7 +53,6 @@ async def async_setup(hass, config):
 class ViewEvent:
     """Send route registered event to websocket."""
     registered_routes = []
-    send_routes = False
 
     def __init__(self, hass, conf):
         self._hass = hass
@@ -110,10 +109,7 @@ class ViewEvent:
             self._handle_route_registration(route)
 
     def _handle_route_registration(self, route):
-        if not self.send_routes:
-            self.registered_routes.append(route)
-        else:
-            self._fire_event(route)
+        self._fire_event(route)
 
     def _fire_event(self, route):
         self._hass.bus.async_fire(
@@ -163,6 +159,5 @@ class ViewEvent:
         self._send_routes()
 
     def _send_routes(self):
-        self.send_routes = True
         for route in self.registered_routes:
             self._fire_event(route)
