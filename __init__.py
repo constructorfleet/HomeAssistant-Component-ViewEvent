@@ -189,8 +189,7 @@ class ViewEvent:
     @callback
     def routes_requested_bus_handler(self, event):
         """Handle event bus event for requesting existing routes."""
-        event_data = event.get(ATTR_EVENT_DATA, {})
-        if len(event_data.keys()) == 0 or event_data.get(ATTR_INSTANCE_NAME, None) == self._name:
+        if len(event.data.keys()) == 0 or event.data.get(ATTR_INSTANCE_NAME, None) == self._name:
             self._send_routes()
 
     def _send_routes(self):
