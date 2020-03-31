@@ -12,7 +12,6 @@ import voluptuous as vol
 from homeassistant.components import websocket_api
 from homeassistant.components.auth import TOKEN_TYPE_LONG_LIVED_ACCESS_TOKEN
 from homeassistant.components.http import HomeAssistantView
-from homeassistant.components.http.auth import DATA_SIGN_SECRET
 from homeassistant.core import callback
 
 _LOGGER = logging.getLogger(__name__)
@@ -24,6 +23,7 @@ ATTR_INSTANCE_NAME = 'instance_name'
 ATTR_INSTANCE_IP = 'instance_ip'
 ATTR_INSTANCE_PORT = 'instance_port'
 ATTR_TOKEN = 'token'
+ATTR_EVENT_DATA = "event_data"
 EVENT_TYPE_REQUEST_ROUTES = 'request_routes'
 EVENT_TYPE_ROUTE_REGISTERED = 'route_registered'
 
@@ -189,7 +189,9 @@ class ViewEvent:
     @callback
     def routes_requested_bus_handler(self, event):
         """Handle event bus event for requesting existing routes."""
-        self._send_routes()
+        event_data = event.get(ATTR_EVENT_DATA, {})
+        if len(event_data.keys()) == 0 or event_data.get(ATTR_INSTANCE_NAME, None) == self._name:
+            self._send_routes()
 
     def _send_routes(self):
         for route in self.registered_routes:
