@@ -23,7 +23,7 @@ ATTR_INSTANCE_NAME = 'instance_name'
 ATTR_INSTANCE_IP = 'instance_ip'
 ATTR_INSTANCE_PORT = 'instance_port'
 ATTR_TOKEN = 'token'
-ATTR_EVENT_DATA = "event_data"
+ATTR_EVENT_DATA = "data"
 EVENT_TYPE_REQUEST_ROUTES = 'request_routes'
 EVENT_TYPE_ROUTE_REGISTERED = 'route_registered'
 
