@@ -146,7 +146,8 @@ class ViewEvent:
     def _fire_event(self, route):
         self._hass.bus.async_fire(
             event_type=EVENT_TYPE_ROUTE_REGISTERED,
-            event_data=route
+            event_data=route,
+            origin=EventOrigin.local
         )
 
     def _wrap_function(self, function):
