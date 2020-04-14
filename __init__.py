@@ -12,7 +12,7 @@ import voluptuous as vol
 from homeassistant.components import websocket_api
 from homeassistant.components.auth import TOKEN_TYPE_LONG_LIVED_ACCESS_TOKEN
 from homeassistant.components.http import HomeAssistantView
-from homeassistant.core import callback
+from homeassistant.core import callback, EventOrigin
 
 _LOGGER = logging.getLogger(__name__)
 
