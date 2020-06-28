@@ -61,6 +61,7 @@ def is_url(url):
         return False
 
 
+# pylint: disable=too-many-arguments
 def build_payload(route, method, auth_required, instance_name, host, port, url, token):
     """Create payload for api."""
     payload = {
