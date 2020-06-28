@@ -62,6 +62,7 @@ def is_url(url):
 
 
 def build_payload(route, method, auth_required, instance_name, host, port, url, token):
+    """Create payload for api."""
     payload = {
         ATTR_ROUTE: route,
         ATTR_METHOD: method,
@@ -125,7 +126,7 @@ class ViewEvent:
         self._port = hass.http.server_port
         try:
             self._url = hass.config.api.base_url
-        except:
+        except:  # pylint: disable=bare-except
             self._url = None
         hass.bus.async_listen(
             EVENT_TYPE_REQUEST_ROUTES,
