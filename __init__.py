@@ -7,6 +7,8 @@ https://home-assistant.io/components/remote_homeassistant/
 import logging
 from datetime import timedelta
 
+from urllib.parse import urlparse
+
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant.components import websocket_api
@@ -20,6 +22,7 @@ ATTR_METHOD = 'method'
 ATTR_ROUTE = 'route'
 ATTR_AUTH_REQUIRED = 'auth_required'
 ATTR_INSTANCE_NAME = 'instance_name'
+ATTR_INSTANCE_URL = 'instance_url'
 ATTR_INSTANCE_IP = 'instance_ip'
 ATTR_INSTANCE_PORT = 'instance_port'
 ATTR_TOKEN = 'token'
@@ -44,6 +47,35 @@ CONFIG_SCHEMA = vol.Schema({
                                                [cv.slugify])
     }),
 }, extra=vol.ALLOW_EXTRA)
+
+
+def is_url(url):
+    if url is None:
+        return False
+    try:
+        result = urlparse(url)
+        return all([result.scheme, result.netloc])
+    except:
+        return False
+
+
+def build_payload(route, method, auth_required, instance_name, host, port, url, token):
+    payload = {
+        ATTR_ROUTE: route,
+        ATTR_METHOD: method,
+        ATTR_AUTH_REQUIRED: auth_required,
+        ATTR_INSTANCE_NAME: instance_name,
+        ATTR_TOKEN: token
+    }
+    if is_url(url):
+        payload.update({ATTR_INSTANCE_URL: url})
+    else:
+        payload.update({
+            ATTR_INSTANCE_IP: host,
+            ATTR_INSTANCE_PORT: port,
+        })
+
+    return payload
 
 
 async def async_setup(hass, config):
@@ -89,6 +121,10 @@ class ViewEvent:
         self._name = hass.config.location_name
         self._host = hass.http.server_host
         self._port = hass.http.server_port
+        try:
+            self._url = hass.config.api.base_url
+        except:
+            self._url = None
         hass.bus.async_listen(
             EVENT_TYPE_REQUEST_ROUTES,
             self.routes_requested_bus_handler
@@ -113,15 +149,16 @@ class ViewEvent:
             if not handler:
                 continue
             for url in urls:
-                routes.append({
-                    ATTR_ROUTE: url,
-                    ATTR_METHOD: method,
-                    ATTR_AUTH_REQUIRED: False,
-                    ATTR_INSTANCE_NAME: self._name,
-                    ATTR_INSTANCE_IP: self._host,
-                    ATTR_INSTANCE_PORT: self._port,
-                    ATTR_TOKEN: self._token
-                })
+                routes.append(build_payload(
+                    url,
+                    method,
+                    False,
+                    self._name,
+                    self._host,
+                    self._port,
+                    self._url,
+                    self._token
+                ))
 
         return routes
 
@@ -172,15 +209,16 @@ class ViewEvent:
     async def get_already_registered_routes(self):
         """Retrieve registered routes and send to websocket."""
         for route in self._hass.http.app.router.routes():
-            self._handle_route_registration({
-                ATTR_ROUTE: route.resource.canonical,
-                ATTR_METHOD: route.method,
-                ATTR_AUTH_REQUIRED: False,
-                ATTR_INSTANCE_NAME: self._name,
-                ATTR_INSTANCE_IP: self._host,
-                ATTR_INSTANCE_PORT: self._port,
-                ATTR_TOKEN: self._token
-            })
+            self._handle_route_registration(build_payload(
+                route.resource.canonical,
+                route.method,
+                False,
+                self._name,
+                self._host,
+                self._port,
+                self._url,
+                self._token
+            ))
 
     @callback
     def routes_requested_ws_handler(self, hass, connection, msg):
